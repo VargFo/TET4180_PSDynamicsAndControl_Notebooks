@@ -1,5 +1,34 @@
 import matplotlib.pyplot as plt
-import numpy as nå
+from matplotlib.patches import Arc
+import numpy as np
+
+
+
+"""
+------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------  Coordinate Notebook Utils  --------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------
+"""
+
+# Function to change from abc to alpha-beta coordinates
+def abc_to_alphabeta(abc: np.ndarray) -> np.ndarray:
+    """ Change from abc to alpha-beta coordinates. This is done by the rotational matrix shown below. 
+     The variable "abc" is a numpy array with the three phase values, i.e. a vector [Ia, Ib, Ic] or [Va, Vb, Vc]. """
+    T_alpha_beta = (2/3) * np.array([
+        [1, -0.5, -0.5],
+        [0, np.sqrt(3)/2, -np.sqrt(3)/2]
+    ])
+    return T_alpha_beta @ abc # Matrix multiplication for the Clarke transformation matrix
+
+def alphabeta_to_dq(alpha_beta : np.ndarray, theta : float) -> np.ndarray:
+    """ Change from alpha-beta to dq coordinates. This is done by the rotational matrix shown below. 
+     The variable "alpha_beta" is a numpy array with the two phase values, i.e. a vector [I_alpha, I_beta] or [V_alpha, V_beta]. 
+     The variable "theta" is the angle of rotation. """
+    T_dq = np.array([
+        [np.cos(theta), np.sin(theta)],
+        [-np.sin(theta), np.cos(theta)]
+    ])
+    return T_dq @ alpha_beta # Matrix multiplication for the Park transformation matrix
 
 # Plotting
 def plot_Coordinate_Display(t, Vm, Im, Iphase_diff):
