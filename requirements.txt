@@ -3,3 +3,4 @@ matplotlib
 tops
 control
 scipy
+ipywidgets
