@@ -135,3 +135,73 @@ def plot_Coordinate_Display(t, Vm, Im, Iphase_diff):
     plt.suptitle(r'$abc$ and $\alpha \beta$ Voltages and Currents at $t = {:.4f}$'.format(t), fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.show()
+
+
+
+"""
+------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------  Phasor Diagram Utils  ----------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------
+"""
+
+
+
+def plot_phasor_diagram(phasors):
+    """
+    Plots the phasor diagram for the given complex numbers.
+
+    Parameters:
+    phases (dict): A dictionary containing the complex numbers for the phasors. 
+                   Expected keys are 'Vs', 'Vt', 'Vg', 'Eq', 'Eq_t', 'I', 'Id', 'Iq'.
+
+    Returns:
+    None
+    """
+    plt.figure(figsize=(10,10))
+    # Define a color map for the phasors
+    colors = {
+        'Vs': 'dodgerblue',
+        'Vt': 'deepskyblue',
+        'Vg': 'steelblue',
+        'Eq': 'green',
+        'Eq_t': 'limegreen',
+        'I': 'red',
+        'Id': 'orangered',
+        'Iq': 'darkred'
+    }
+    
+    # Plot all vectors in the dictionary with colors
+    for key, value in phasors.items():
+        color = colors.get(key, 'black')  # Default to black if key is not in colors
+        plt.quiver(0, 0, np.real(value), np.imag(value), angles='xy', scale_units='xy', scale=1, color=color, label=key, width=0.0025)
+        plt.text(np.real(value), np.imag(value), key, fontsize=12, color=color)
+
+    # Calculate delta and phi if Eq and I are provided
+    Eq = phasors.get('Eq', None)
+    I = phasors.get('I', None)
+    delta = np.angle(Eq) if Eq is not None else None
+    phi = -np.angle(I) if I is not None else None
+
+
+    # Add angle arcs if delta and phi are calculated
+    if delta is not None:
+        arc_delta = Arc([0, 0], 0.5, 0.5, theta1=0, theta2=np.degrees(delta), color='blue', linestyle='--')
+        plt.gca().add_patch(arc_delta)
+        plt.text(0.25, 0.05, r'$\delta$', color='blue', fontsize=12)
+
+    if phi is not None:
+        arc_phi = Arc([0, 0], 0.3, 0.3, theta1=-np.degrees(phi), theta2=0, color='magenta', linestyle='--')
+        plt.gca().add_patch(arc_phi)
+        plt.text(0.15, -0.05, r'$\phi$', color='magenta', fontsize=12)
+
+    # Add labels and legend
+    plt.xlabel('Real')
+    plt.ylabel('Imaginary')
+    plt.axhline(0, color='black', linewidth=0.5)
+    plt.axvline(0, color='black', linewidth=0.5)
+    plt.xlim(-0.2, 1.5)
+    plt.ylim(-0.6, 1.0)
+    plt.grid(color='gray', linestyle='--', linewidth=0.5)
+    plt.title('Phasor Diagram')
+
+    plt.show()
