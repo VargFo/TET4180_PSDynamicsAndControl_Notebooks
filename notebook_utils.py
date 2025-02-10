@@ -146,7 +146,7 @@ def plot_Coordinate_Display(t, Vm, Im, Iphase_diff):
 
 
 
-def plot_phasor_diagram(phasors):
+def plot_phasor_diagram(phasors, xlim : tuple, ylim : tuple):
     """
     Plots the phasor diagram for the given complex numbers.
 
@@ -157,7 +157,7 @@ def plot_phasor_diagram(phasors):
     Returns:
     None
     """
-    plt.figure(figsize=(10,10))
+    plt.figure()
     # Define a color map for the phasors
     colors = {
         'Vs': 'dodgerblue',
@@ -199,11 +199,11 @@ def plot_phasor_diagram(phasors):
     plt.ylabel('Imaginary')
     plt.axhline(0, color='black', linewidth=0.5)
     plt.axvline(0, color='black', linewidth=0.5)
-    # plt.xlim(-0.2, 1.5)
-    # plt.ylim(-0.6, 1.0)
+    plt.xlim(xlim[0], xlim[1])
+    plt.ylim(ylim[0], ylim[1])
     plt.grid(color='gray', linestyle='--', linewidth=0.5)
     plt.title('Phasor Diagram')
-
+    plt.tight_layout()
     plt.show()
 
 # Define a function to update the phasor diagram
@@ -226,6 +226,8 @@ def update_phasor_diagram(P, Q, Vs, Xd, Xd_t, Xq, Xt, Xl):
     Eq = Vg + Id*1j*(Xd) + Iq*1j*Xq
     Eq_t = Vs + Id*1j*(xd_t) + Iq*1j*xq
 
+
+
     phasors = {
         'Vs': Vs,
         'Vt': Vt,
@@ -237,4 +239,7 @@ def update_phasor_diagram(P, Q, Vs, Xd, Xd_t, Xq, Xt, Xl):
         'Iq': Iq
     }
 
-    plot_phasor_diagram(phasors)
+    xlim = (-max(np.real(value) for value in phasors.values())*0.2, max(np.real(value) for value in phasors.values())*1.3)
+    ylim = (min(np.imag(value) for value in phasors.values())*1.2,max(np.imag(value) for value in phasors.values())*1.2)    
+
+    plot_phasor_diagram(phasors, ylim=ylim, xlim=xlim)
