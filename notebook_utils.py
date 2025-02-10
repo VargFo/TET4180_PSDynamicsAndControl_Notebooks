@@ -243,3 +243,46 @@ def update_phasor_diagram(P, Q, Vs, Xd, Xd_t, Xq, Xt, Xl):
     ylim = (min(np.imag(value) for value in phasors.values())*1.2,max(np.imag(value) for value in phasors.values())*1.2)    
 
     plot_phasor_diagram(phasors, ylim=ylim, xlim=xlim)
+
+
+
+
+
+
+"""
+------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------  Small distrubance utils  --------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------
+"""
+
+def getPhasorsDictionary_SmallDist(P, Q, Vs, Xd, Xd_t, Xq, Xt, Xl):
+    # Recalculate the variables based on the slider values
+    I = (P - 1j*Q) / Vs
+    phi = np.abs(np.angle(I))
+    Vt = Vs + I * 1j*(Xl)
+    Vg = Vs + I * 1j*(Xt + Xl)
+    xq = Xq + Xt + Xl
+    xd = Xd + Xt + Xl
+    xd_t = Xd_t + Xt + Xl
+    EQ = Vs + I*1j*(xq)
+    delta = np.angle(EQ)
+    beta = delta + phi
+    Id_m = np.abs(I)*np.sin(beta)
+    Iq_m = np.abs(I)*np.cos(beta)
+    Id = Id_m * np.exp(1j*(delta - np.pi/2))
+    Iq = Iq_m * np.exp(1j*(delta))
+    Eq = Vg + Id*1j*(Xd) + Iq*1j*Xq
+    Eq_t = Vs + Id*1j*(xd_t) + Iq*1j*xq
+
+    phasors = {
+        'Vs': Vs,
+        'Vt': Vt,
+        'Vg': Vg,
+        'Eq': Eq,
+        'Eq_t': Eq_t,
+        'I': I,
+        'Id': Id,
+        'Iq': Iq
+    }
+    return phasors
+
