@@ -286,3 +286,50 @@ def getPhasorsDictionary_SmallDist(P, Q, Vs, Xd, Xd_t, Xq, Xt, Xl):
     }
     return phasors
 
+
+
+
+
+
+
+
+
+
+
+# Define the function to calculate eigenvalues
+def calculate_eigenvalues(H, D, K_E_t, f_N):
+    A = np.array([[0, 2 * np.pi * f_N],
+                  [-K_E_t / (2 * H), -D / (2 * H)]])
+    eigenvalues = np.linalg.eigvals(A)
+    return eigenvalues
+
+# Define the function to plot the root locus
+def plot_root_locus(H, D, K_E_t, f_N):
+    eigenvalues = calculate_eigenvalues(H, D, K_E_t, f_N)
+    
+    plt.figure(figsize=(10, 6))
+    plt.scatter(eigenvalues.real, eigenvalues.imag, color='red')
+    plt.axhline(0, color='black', lw=0.5)
+    plt.axvline(0, color='black', lw=0.5)
+    plt.xlabel('Real Part')
+    plt.ylabel('Imaginary Part')
+    plt.xlim(-4, 1)
+    plt.ylim(-15, 15)
+    plt.title('Root Locus')
+    plt.grid(True)
+    
+    # Annotate damping and frequency
+    for eig in eigenvalues:
+        damping = -eig.real / np.sqrt(eig.real**2 + eig.imag**2) * 100
+        frequency = np.abs(eig.imag) / (2 * np.pi)
+        plt.annotate(f'{damping:.2f} %, {frequency:.2f} Hz', (eig.real, eig.imag), textcoords="offset points", xytext=(10,-10), ha='center')
+    # Mark the area 0.1-2 Hz and below 10% damping indicating electromechanical modes
+    freq_range = np.linspace(0.1, 2, 1000)
+    damping_ratio = 0.1
+    real_part = -damping_ratio * 2 * np.pi * freq_range
+    imag_part = 2 * np.pi * freq_range * np.sqrt(1 - damping_ratio**2)
+    plt.fill_betweenx(imag_part, real_part, 0, color='yellow', alpha=0.3, label='Electromechanical Modes (0.1-2 Hz, <10% damping)')
+    plt.fill_betweenx(-imag_part, real_part, 0, color='yellow', alpha=0.3)
+    plt.legend()
+    
+    plt.show()
