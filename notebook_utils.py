@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import control as ctrl
 from matplotlib.patches import Arc
 import numpy as np
 
@@ -287,15 +288,6 @@ def getPhasorsDictionary_SmallDist(P, Q, Vs, Xd, Xd_t, Xq, Xt, Xl):
     return phasors
 
 
-
-
-
-
-
-
-
-
-
 # Define the function to calculate eigenvalues
 def calculate_eigenvalues(H, D, K_E_t, f_N):
     A = np.array([[0, 2 * np.pi * f_N],
@@ -333,3 +325,27 @@ def plot_root_locus(H, D, K_E_t, f_N):
     plt.legend()
     
     plt.show()
+
+def calculate_open_loop_transfer_function(H, D, w_N, K_E_t):
+    return ctrl.TransferFunction([1, 0], [2*H, D, w_N*K_E_t], name='Open Loop')
+
+def calculate_governor_transfer_function(Tw, Kgov):
+    return Kgov * ctrl.TransferFunction([-Tw, 1], [0.5*Tw, 1], name='GOV')
+
+def calculate_combined_transfer_function(H_OL, GOV):
+    return ctrl.TransferFunction(H_OL * GOV, name='Open Loop with Governor')
+
+def plot_bode_response(H_OL, H_OLwithGOV):
+    plt.figure(figsize=(12, 6))
+    ctrl.bode_plot(H_OL, dB=True, label='Open Loop', display_margins=False)
+    ctrl.bode_plot(H_OLwithGOV, dB=True, display_margins=True)
+    plt.legend(['Open Loop', 'Open Loop with Governor'])
+    plt.show()
+
+def update_plots_small_signal(Tw, Kgov, H, D, w_N, K_E_t):
+    H_OL = calculate_open_loop_transfer_function(H, D, w_N, K_E_t)
+    GOV = calculate_governor_transfer_function(Tw, Kgov)
+    H_OLwithGOV = calculate_combined_transfer_function(H_OL, GOV)
+    
+    plot_bode_response(H_OL, H_OLwithGOV)
+
