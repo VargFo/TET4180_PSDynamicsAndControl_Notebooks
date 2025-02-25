@@ -349,3 +349,8 @@ def update_plots_small_signal(Tw, Kgov, H, D, w_N, K_E_t):
     
     plot_bode_response(H_OL, H_OLwithGOV)
 
+def calc_damping_and_freq(eigenvalue):
+    damping = -eigenvalue.real / np.sqrt(eigenvalue.real**2 + eigenvalue.imag**2) * 100
+    frequency = np.abs(eigenvalue.imag) / (2 * np.pi)
+    print(f'Damping of eigenvalue {eigenvalue} is: {damping:.2f} % and frequency: {frequency:.2f} Hz')
+    return damping, frequency
