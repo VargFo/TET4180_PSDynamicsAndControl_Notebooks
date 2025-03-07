@@ -386,7 +386,11 @@ def update_plot(delta_clear, P_m, P_e_sc, E, Vs, x_dt):
     plt.show()
 
 
-
+'''
+------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------  VOLTAGE STABILITY UTILS  --------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------
+'''
 
 def calculate_open_loop_transfer_function(H, D, w_N, K_E_t):
     return ctrl.TransferFunction([1, 0], [2*H, D, w_N*K_E_t], name='Open Loop')
@@ -416,3 +420,164 @@ def calc_damping_and_freq(eigenvalue):
     frequency = np.abs(eigenvalue.imag) / (2 * np.pi)
     print(f'Damping of eigenvalue {eigenvalue} is: {damping:.2f} % and frequency: {frequency:.2f} Hz')
     return damping, frequency
+
+# NOTEBOOK 7
+
+# Define the function to update the transfer functions and plots
+def update_transfer_functions_AVR(k_p, k_i, k_d, T_E, K_e, K_3, T_d0_t, K_6, T_m):
+    # AVR block:
+
+    AVR_PID = ctrl.tf( ctrl.tf([k_p], [1])+ctrl.tf([k_i], [1, 0])+ctrl.tf([k_d, 0], [1]) , name = r"G_{avr}(s)")
+
+    #Exciter block:
+    # Exciter time constant, assume not tunable, T_e = 0.1 TOPS standard value
+    Gexc = ctrl.tf([K_e], [T_E, 1], name = r"G_{exc}(s)")
+
+    # Generator block:
+    Ggen = ctrl.tf([K_3], [K_3*T_d0_t, 1], name = r"G_{gen}(s)")
+
+    # Feedback Block 
+    Hmeas = ctrl.tf([1], [T_m, 1], name = r"H_{meas}(s)")
+
+    G = ctrl.tf(Gexc*Ggen*AVR_PID*K_6, name = r"G(s)")
+    L = ctrl.tf(G*Hmeas, name = r"L(s)")
+    CL = ctrl.tf(G/(1+L), name = r"CL(s)")
+
+    return L,CL
+
+def poles_interactive_plot_AVR(kp, ki, kd, K_e, T_E, K_3, T_d0_t, K_6, T_m):
+    L, CL = update_transfer_functions_AVR(kp, ki, kd, T_E, K_e, K_3, T_d0_t, K_6, T_m)
+
+    poles = ctrl.poles(CL)
+    plt.figure()
+    plt.scatter(poles.real, poles.imag, marker='x', color='red')
+    plt.axhline(0, color='black', lw=0.5)
+    plt.axvline(0, color='black', lw=0.5)
+    plt.xlabel('Real Part')
+    plt.ylabel('Imaginary Part')
+    plt.title('Poles of the Closed-Loop Transfer Function')
+    plt.grid(True)
+
+    # Annotate damping and frequency
+    for eig in poles:
+        if abs(eig) < 1e-10:
+            continue
+        damping = -eig.real/abs(eig)
+        if damping < 0.99:
+            frequency = np.abs(eig.imag) / (2 * np.pi)
+            plt.annotate(f'{damping*100:.2f} %, {frequency:.2f} Hz', (eig.real, eig.imag), textcoords="offset points", xytext=(10, -10), ha='center')
+
+    # Mark the area 0.1-2 Hz and below 10% damping indicating electromechanical modes
+    freq_range = np.linspace(0.1, 2, 1000)
+    damping_ratio = 0.1
+    real_part = -damping_ratio * 2 * np.pi * freq_range
+    imag_part = 2 * np.pi * freq_range * np.sqrt(1 - damping_ratio**2)
+    plt.fill_betweenx(imag_part, real_part, 0, color='yellow', alpha=0.3, label='Electromechanical Modes (0.1-2 Hz, <10% damping)')
+    plt.fill_betweenx(-imag_part, real_part, 0, color='yellow', alpha=0.3)
+    plt.legend(loc='upper left')
+
+    plt.show()
+
+def bode_interactive_plot_AVR(kp, ki, kd, K_e, T_E, K_3, T_d0_t, K_6, T_m):
+
+    L, CL = update_transfer_functions_AVR(kp, ki, kd, T_E, K_e, K_3, T_d0_t, K_6, T_m)
+
+    response = ctrl.frequency_response(CL)
+    ctrl.bode_plot(response, initial_phase=0, display_margins=True)
+    plt.show()
+
+def stepresponse_interactive_plot_AVR(kp, ki, kd, K_e, T_E, K_3, T_d0_t, K_6, T_m):
+
+    L, CL = update_transfer_functions_AVR(kp, ki, kd, T_E, K_e, K_3, T_d0_t, K_6, T_m)
+
+    t, y = ctrl.step_response(CL)
+    plt.figure()
+    plt.plot(t, y)
+    plt.xlabel('Time [s]')
+    plt.ylabel('Output')
+    plt.title('Step Response of the Closed-Loop Transfer Function')
+    plt.show()
+
+def interactive_AVR(kp, ki, kd, K_e, T_E, K_3, T_d0_t, K_6, T_m):
+    poles_interactive_plot_AVR(kp, ki, kd, K_e, T_E, K_3, T_d0_t, K_6, T_m)
+    bode_interactive_plot_AVR(kp, ki, kd, K_e, T_E, K_3, T_d0_t, K_6, T_m)
+    stepresponse_interactive_plot_AVR(kp, ki, kd, K_e, T_E, K_3, T_d0_t, K_6, T_m)
+
+def load_model_NO_AVR():
+    return {
+        'base_mva': 100, #'base_mva': system base/nominal complex power in [MVA].
+        'f': 50, #'f': system frequency in [Hz].
+        'slack_bus': 'B3', #'slack_bus': reference busbar with zero phase angle.
+
+        'buses': [
+            ['name',    'V_n'],
+            ['B1',         10],
+            ['B2',        132],
+            ['B3',        132],
+        ],
+        #'V_n': base/nominal voltage in [kV].
+
+        'lines': [
+            ['name',  'from_bus', 'to_bus',   'length',   'S_n',  'V_n',  'unit', 'R',    'X',   'B'],
+            ['L2-3_1',        'B2',     'B3',        250,      100,    132,    'PF',   0,    0.2,     0],
+            ['L2-3_2',        'B2',     'B3',        250,      110,    132,    'PF',   0,    0.2,     0],
+        ],
+
+
+        'transformers': [
+            ['name', 'from_bus', 'to_bus', 'S_n', 'V_n_from', 'V_n_to', 'R', 'X'],
+            ['T1',         'B1',     'B2',    100,         10,      132,   0, 0.1],
+        ],
+
+        'generators': {
+            'GEN': [
+                ['name',   'bus',  'S_n',  'V_n',    'P',    'V',      'H',    'D',    'X_d',  'X_q',  'X_d_t',    'X_q_t',    'X_d_st',   'X_q_st',   'T_d0_t',   'T_q0_t',   'T_d0_st',  'T_q0_st'],
+                ['G1',      'B1',     100,     10,     80,  1.1314,      5,      0,     1.0,   0.66,    0.3,      0.66,       0.254,      0.273,       2.49,      10000,         0.06,       0.15],
+                ['IB',      'B3',    1e8,    132,    -80,  1,      1e5,      0,     1.05,   0.66,    0.328,      0.66,       0.254,      0.273,       2.49,      10000,         0.06,       0.15],
+            ],
+        },
+
+    }
+
+def load_model_wAVR(K, T_a, T_b, T_e, E_min, E_max):
+    return {
+        'base_mva': 100, #'base_mva': system base/nominal complex power in [MVA].
+        'f': 50, #'f': system frequency in [Hz].
+        'slack_bus': 'B3', #'slack_bus': reference busbar with zero phase angle.
+
+        'buses': [
+            ['name',    'V_n'],
+            ['B1',         10],
+            ['B2',        132],
+            ['B3',        132],
+        ],
+        #'V_n': base/nominal voltage in [kV].
+
+        'lines': [
+            ['name',  'from_bus', 'to_bus',   'length',   'S_n',  'V_n',  'unit', 'R',    'X',   'B'],
+            ['L2-3_1',        'B2',     'B3',        250,      100,    132,    'PF',   0,    0.2,     0],
+            ['L2-3_2',        'B2',     'B3',        250,      110,    132,    'PF',   0,    0.2,     0],
+        ],
+
+
+        'transformers': [
+            ['name', 'from_bus', 'to_bus', 'S_n', 'V_n_from', 'V_n_to', 'R', 'X'],
+            ['T1',         'B1',     'B2',    100,         10,      132,   0, 0.1],
+        ],
+
+        'generators': {
+            'GEN': [
+                ['name',   'bus',  'S_n',  'V_n',    'P',    'V',      'H',    'D',    'X_d',  'X_q',  'X_d_t',    'X_q_t',    'X_d_st',   'X_q_st',   'T_d0_t',   'T_q0_t',   'T_d0_st',  'T_q0_st'],
+                ['G1',      'B1',     100,     10,     80,  1.1314,      5,      0,     1.0,   0.66,    0.3,      0.66,       0.254,      0.273,       2.49,      10000,         0.06,       0.15],
+                ['IB',      'B3',    1e8,    132,    -80,  1,      1e5,      0,     1.05,   0.66,    0.328,      0.66,       0.254,      0.273,       2.49,      10000,         0.06,       0.15],
+            ],
+        },
+
+        'avr': {
+            'SEXS': [
+                ['name', 'gen', 'K', 'T_a', 'T_b', 'T_e', 'E_min', 'E_max'],
+                ['AVR1', 'G1', K, T_a, T_b, T_e, E_min, E_max],
+            ]
+        },
+
+    }
