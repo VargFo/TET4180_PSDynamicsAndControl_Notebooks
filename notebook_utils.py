@@ -5,6 +5,7 @@ import numpy as np
 from scipy.integrate import quad
 from scipy.optimize import fsolve
 from ipywidgets import interact, FloatSlider, widgets
+from IPython.display import display
 
 """
 ------------------------------------------------------------------------------------------------------------------------------------------
